@@ -1,0 +1,13 @@
+[project]
+name = "xbt-mesh"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dbt-loom>=0.9.4",
+    "xbt",
+]
+
+[tool.uv.sources]
+xbt = { git = "https://github.com/seediang/xbt-core", rev = "develop" }

@@ -1,0 +1,27 @@
+projectA:
+  outputs:
+    dev:
+      type: duckdb
+      path: ../shared_dev.duckdb
+      threads: 1
+
+    prod:
+      type: duckdb
+      path: ../shared_prod.duckdb
+      threads: 4
+
+  target: dev
+
+projectB:
+  outputs:
+    dev:
+      type: duckdb
+      path: ../shared_dev.duckdb
+      threads: 1
+
+    prod:
+      type: duckdb
+      path: ../shared_prod.duckdb
+      threads: 4
+
+  target: dev
