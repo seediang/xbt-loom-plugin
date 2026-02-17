@@ -105,6 +105,7 @@ class ManifestBuilder:
 
         Raises:
             ValueError: If required fields are missing
+            Types without validators are accepted without additional checks
         """
         validators = {
             "file": ManifestBuilder.validate_file_config,

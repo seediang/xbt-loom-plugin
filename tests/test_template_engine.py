@@ -79,10 +79,8 @@ class TestRenderJinja2:
     def test_render_with_missing_variable(self):
         """Test rendering with missing variable in StrictUndefined mode."""
         context = {"name": "Alice"}
-        # Should handle gracefully without crashing
-        result = render_jinja2("Hello {{ undefined_var }}", context)
-        # With StrictUndefined, it should fail but be caught
-        assert result is not None
+        with pytest.raises(Exception):
+            render_jinja2("Hello {{ undefined_var }}", context)
 
     def test_render_no_template(self):
         """Test rendering plain text."""

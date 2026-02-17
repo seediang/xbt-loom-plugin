@@ -9,29 +9,9 @@ import yaml
 from .arg_parser import resolve_profiles_dir
 from .manifest_builder import ManifestBuilder
 from .template_engine import build_template_context, render_value
+from .utils import get_template_candidates, read_text_file, read_yaml_file
 
 logger = logging.getLogger(__name__)
-
-
-def read_yaml_file(file_path: Path) -> Dict[str, Any]:
-    """
-    Read and parse a YAML file.
-
-    Args:
-        file_path: Path to YAML file
-
-    Returns:
-        Parsed YAML content as dictionary
-
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        yaml.YAMLError: If file is not valid YAML
-    """
-    if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    with open(file_path, "r") as f:
-        return yaml.safe_load(f) or {}
 
 
 def read_dbt_project_yml(project_dir: Path) -> Dict[str, Any]:
@@ -156,32 +136,13 @@ def load_template(project_dir: Path, workspace_root: Path) -> Optional[str]:
     Returns:
         Template content as string, or None if not found
     """
-    # Try project-level template
-    project_template = project_dir / "dbt_loom.config.template.yml"
-    if project_template.exists():
+    for template_path in get_template_candidates(project_dir, workspace_root):
+        if not template_path.exists():
+            continue
         try:
-            with open(project_template, "r") as f:
-                return f.read()
+            return read_text_file(template_path)
         except Exception as e:
-            logger.warning(f"Failed to read project template: {e}")
-
-    # Try project parent template
-    parent_template = project_dir.parent / "dbt_loom.config.template.yml"
-    if parent_template.exists():
-        try:
-            with open(parent_template, "r") as f:
-                return f.read()
-        except Exception as e:
-            logger.warning(f"Failed to read parent template: {e}")
-
-    # Try workspace-level template
-    workspace_template = workspace_root / "dbt_loom.config.template.yml"
-    if workspace_template.exists():
-        try:
-            with open(workspace_template, "r") as f:
-                return f.read()
-        except Exception as e:
-            logger.warning(f"Failed to read workspace template: {e}")
+            logger.warning("Failed to read template %s: %s", template_path, e)
 
     return None
 
@@ -225,6 +186,72 @@ def _build_manifest_contexts(
         )
         contexts.append(context)
     return contexts
+
+
+def _render_template_config(
+    template_text: str,
+    project_name: str,
+    project_dir: Path,
+    profiles_dir: Optional[Path],
+    manifest_contexts: List[Dict[str, Any]],
+) -> str:
+    project_context = {
+        "project_name": project_name,
+        "project_root": str(project_dir),
+        "profiles_dir": str(profiles_dir) if profiles_dir else "",
+        "upstream_projects": manifest_contexts,
+    }
+    return render_value(template_text, project_context)
+
+
+def _build_manifest_entries(
+    dependency_entries: List[Dict[str, Any]],
+    project_dir: Path,
+    profiles_dir: Optional[Path],
+    project_name: str,
+) -> List[Dict[str, Any]]:
+    manifests = []
+    for entry in dependency_entries:
+        upstream_project = entry["name"]
+        manifest_type = entry.get("type", "file")
+        manifest_config = entry.get("config")
+        excluded_packages = entry.get("excluded_packages")
+
+        context = build_template_context(
+            upstream_project=upstream_project,
+            project_root=project_dir,
+            profiles_dir=profiles_dir,
+            project_name=project_name,
+        )
+        context["manifest_type"] = manifest_type
+        context["excluded_packages"] = excluded_packages
+
+        if not manifest_config:
+            if manifest_type != "file":
+                logger.warning(
+                    "Skipping %s due to missing config for manifest type %s",
+                    upstream_project,
+                    manifest_type,
+                )
+                continue
+            manifest_config = {"path": context["manifest_path"]}
+
+        rendered_config = {
+            key: render_value(value, context) for key, value in manifest_config.items()
+        }
+
+        ManifestBuilder.validate_config(manifest_type, rendered_config)
+
+        manifest_entry = ManifestBuilder.build_manifest_entry(
+            name=upstream_project,
+            manifest_type=manifest_type,
+            config=rendered_config,
+            excluded_packages=excluded_packages,
+        )
+
+        manifests.append(manifest_entry)
+
+    return manifests
 
 
 def generate_config_for_project(
@@ -278,58 +305,20 @@ def generate_config_for_project(
     )
 
     if template_text:
-        project_context = {
-            "project_name": project_name,
-            "project_root": str(project_dir),
-            "profiles_dir": str(profiles_dir) if profiles_dir else "",
-            "upstream_projects": manifest_contexts,
-        }
-        return render_value(template_text, project_context)
-
-    # Build manifest entries
-    manifests = []
-    for entry in dependency_entries:
-        upstream_project = entry["name"]
-        manifest_type = entry.get("type", "file")
-        manifest_config = entry.get("config")
-        excluded_packages = entry.get("excluded_packages")
-
-        # Build template context
-        context = build_template_context(
-            upstream_project=upstream_project,
-            project_root=project_dir,
-            profiles_dir=profiles_dir,
-            project_name=project_name,
-        )
-        context["manifest_type"] = manifest_type
-        context["excluded_packages"] = excluded_packages
-
-        if not manifest_config:
-            if manifest_type != "file":
-                logger.warning(
-                    "Skipping %s due to missing config for manifest type %s",
-                    upstream_project,
-                    manifest_type,
-                )
-                continue
-            manifest_config = {"path": context["manifest_path"]}
-
-        rendered_config = {
-            key: render_value(value, context) for key, value in manifest_config.items()
-        }
-
-        ManifestBuilder.validate_config(manifest_type, rendered_config)
-
-        manifest_entry = ManifestBuilder.build_manifest_entry(
-            name=upstream_project,
-            manifest_type=manifest_type,
-            config=rendered_config,
-            excluded_packages=excluded_packages,
+        return _render_template_config(
+            template_text,
+            project_name,
+            project_dir,
+            profiles_dir,
+            manifest_contexts,
         )
 
-        manifests.append(manifest_entry)
-
-    # Generate YAML
+    manifests = _build_manifest_entries(
+        dependency_entries,
+        project_dir,
+        profiles_dir,
+        project_name,
+    )
     return get_default_config_yaml(manifests)
 
 

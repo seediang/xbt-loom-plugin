@@ -1,12 +1,9 @@
 """Template engine for rendering configuration with environment variables and Jinja2."""
 
-import logging
 import os
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-logger = logging.getLogger(__name__)
 
 
 def render_value(value: Any, context: Optional[Dict[str, Any]] = None) -> str:
@@ -52,15 +49,11 @@ def render_jinja2(template_text: str, context: Dict[str, Any]) -> str:
     Returns:
         Rendered string
     """
-    try:
-        from jinja2 import Environment, StrictUndefined
+    from jinja2 import Environment, StrictUndefined
 
-        env = Environment(undefined=StrictUndefined)
-        template = env.from_string(template_text)
-        return template.render(**context)
-    except Exception as e:
-        logger.warning("Jinja2 rendering failed: %s", e)
-        return template_text
+    env = Environment(undefined=StrictUndefined)
+    template = env.from_string(template_text)
+    return template.render(**context)
 
 
 def substitute_env_vars(text: str) -> str:
