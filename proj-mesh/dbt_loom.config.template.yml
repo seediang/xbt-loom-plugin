@@ -2,10 +2,10 @@
 # This file can be customized with Jinja2 variables and environment variables
 #
 # Jinja2 variables available:
-#   - /home/simon/github/seediang/xbt-mesh/proj-mesh/projectB: Root directory of this dbt project
-#   - /home/simon/github/seediang/xbt-mesh/proj-mesh/projectB: Path to profiles directory (if resolved)
-#   - projectB: Name of this project from dbt_project.yml
-#   - [{'upstream_project': 'projectA', 'project_root': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectB', 'project_name': 'projectB', 'profiles_dir': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectB', 'manifest_path': '../projectA/target/manifest.json', 'manifest_path_abs': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectA/target/manifest.json', 'name': 'projectA', 'manifest_type': 'file', 'config': {}, 'excluded_packages': None}]: List of upstream project dicts with keys:
+#   - {{ project_root }}: Root directory of this dbt project
+#   - {{ profiles_dir }}: Path to profiles directory (if resolved)
+#   - {{ project_name }}: Name of this project from dbt_project.yml
+#   - {{ upstream_projects }}: List of upstream project dicts with keys:
 #       - name
 #       - upstream_project
 #       - manifest_path (relative)
@@ -24,15 +24,15 @@
 #
 # Default template (file-based manifest):
 manifests:
-
-  - name: projectA
-    type: file
+{% for project in upstream_projects %}
+  - name: {{ project.name }}
+    type: {{ project.manifest_type | default('file') }}
     config:
-      path: ../projectA/target/manifest.json
-
+      path: {{ project.manifest_path }}
+{% endfor %}
 #
 # Example for S3 manifest with environment variables:
-
+{% raw %}
 # manifests:
 #   - name: {{ project.name }}
 #     type: s3
@@ -58,6 +58,6 @@ manifests:
 #       account_id: ${DBT_CLOUD_ACCOUNT_ID}
 #       job_id: ${DBT_CLOUD_JOB_ID}
 #       api_endpoint: ${DBT_CLOUD_API_URL}
-
+{% endraw %}
 #
 # If this file does not exist, the xbt-loom-auto-configure plugin will generate one
