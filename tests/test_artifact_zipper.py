@@ -1,6 +1,5 @@
 """Tests for xbt_loom_plugin.artifact_zipper module."""
 
-from pathlib import Path
 import zipfile
 
 from xbt_loom_plugin.artifact_zipper import xbt_post_invoke

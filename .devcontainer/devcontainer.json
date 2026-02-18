@@ -1,0 +1,48 @@
+{
+  "name": "xbt-mesh",
+  "image": "python:3.12-slim",
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "eamodio.gitlens",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "ruff.importStrategy": "fromEnvironment",
+        "ruff.lint.select": [
+          "E",
+          "F",
+          "W"
+        ],
+        "ruff.format.args": [
+          "--line-length=100"
+        ]
+      }
+    }
+  },
+  "postCreateCommand": "apt-get update && apt-get install -y git && curl -LsSf https://astral.sh/uv/install.sh | sh && uv sync",
+  "postStartCommand": "uv sync --frozen",
+  "forwardPorts": [],
+  "portsAttributes": {},
+  "remoteEnv": {
+    "PATH": "/root/.local/bin:${containerEnv:PATH}"
+  },
+  "runArgs": [
+    "--userns=keep-id",
+    "--security-opt=label=disable"
+  ],
+  "containerUser": "root",
+  "updateRemoteUserUID": false
+}

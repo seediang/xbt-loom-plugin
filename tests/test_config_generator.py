@@ -1,7 +1,5 @@
 """Tests for xbt_plugins.config_generator module."""
 
-from pathlib import Path
-
 import pytest
 import yaml
 
@@ -22,9 +20,7 @@ class TestReadDbtProjectYml:
     def test_read_valid_project_file(self, tmp_path):
         """Test reading valid dbt_project.yml."""
         project_file = tmp_path / "dbt_project.yml"
-        project_file.write_text(
-            yaml.dump({"name": "my_project", "version": "1.0.0"})
-        )
+        project_file.write_text(yaml.dump({"name": "my_project", "version": "1.0.0"}))
 
         result = read_dbt_project_yml(tmp_path)
         assert result["name"] == "my_project"
@@ -57,9 +53,7 @@ class TestReadDependenciesYml:
     def test_read_valid_dependencies_file(self, tmp_path):
         """Test reading valid dependencies.yml."""
         deps_file = tmp_path / "dependencies.yml"
-        deps_file.write_text(
-            yaml.dump({"projects": [{"name": "upstream_a"}]})
-        )
+        deps_file.write_text(yaml.dump({"projects": [{"name": "upstream_a"}]}))
 
         result = read_dependencies_yml(tmp_path)
         assert result is not None
@@ -139,9 +133,7 @@ class TestGenerateConfigForProject:
         """Test generating config when no dependencies exist."""
         project_dir = tmp_path / "projectA"
         project_dir.mkdir()
-        (project_dir / "dbt_project.yml").write_text(
-            yaml.dump({"name": "projectA"})
-        )
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectA"}))
 
         config_yaml = generate_config_for_project(project_dir)
         assert config_yaml is None
@@ -150,9 +142,7 @@ class TestGenerateConfigForProject:
         """Test generating config with multiple upstream projects."""
         project_dir = tmp_path / "projectC"
         project_dir.mkdir()
-        (project_dir / "dbt_project.yml").write_text(
-            yaml.dump({"name": "projectC"})
-        )
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectC"}))
 
         (project_dir / "dependencies.yml").write_text(
             yaml.dump(
@@ -207,9 +197,7 @@ class TestAutoConfigureLoom:
         """Test auto-configuration creates config file."""
         project_dir = tmp_path / "project"
         project_dir.mkdir()
-        (project_dir / "dbt_project.yml").write_text(
-            yaml.dump({"name": "project"})
-        )
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "project"}))
         (project_dir / "dependencies.yml").write_text(
             yaml.dump({"projects": [{"name": "upstream"}]})
         )
@@ -232,9 +220,7 @@ class TestAutoConfigureLoom:
         """Test auto-configure skips if no dependencies."""
         project_dir = tmp_path / "project"
         project_dir.mkdir()
-        (project_dir / "dbt_project.yml").write_text(
-            yaml.dump({"name": "project"})
-        )
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "project"}))
 
         result = auto_configure_loom(project_dir, workspace_root=tmp_path)
         assert result is None
@@ -243,17 +229,13 @@ class TestAutoConfigureLoom:
         """Test auto-configure with CLI args."""
         project_dir = tmp_path / "project"
         project_dir.mkdir()
-        (project_dir / "dbt_project.yml").write_text(
-            yaml.dump({"name": "project"})
-        )
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "project"}))
         (project_dir / "dependencies.yml").write_text(
             yaml.dump({"projects": [{"name": "upstream"}]})
         )
 
         args = ["--project-dir", str(project_dir)]
-        result = auto_configure_loom(
-            project_dir, args=args, workspace_root=tmp_path
-        )
+        result = auto_configure_loom(project_dir, args=args, workspace_root=tmp_path)
 
         assert result is not None
         assert result.exists()

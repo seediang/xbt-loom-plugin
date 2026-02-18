@@ -1,8 +1,5 @@
 """Tests for xbt_plugins.template_engine module."""
 
-import os
-from pathlib import Path
-
 import pytest
 
 from xbt_loom_plugin.template_engine import (

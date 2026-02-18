@@ -72,6 +72,7 @@ def substitute_env_vars(text: str) -> str:
     Returns:
         String with environment variables substituted
     """
+
     # Pattern 1: ${VAR_NAME}
     def replace_braced(match):
         var_name = match.group(1)

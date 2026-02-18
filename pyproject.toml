@@ -13,17 +13,24 @@ dependencies = [
     "xbt",
     "pyyaml",
     "jinja2",
+    "boto3>=1.26.0",
+    "snowflake-connector-python>=3.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "ruff>=0.4.0",
+    "ty>=0.0.15",
 ]
 
 [project.entry-points.xbt]
 "xbt-loom-auto-configure" = "xbt_loom_plugin.auto_configuration"
 "xbt-loom-zip-artifacts" = "xbt_loom_plugin.artifact_zipper"
+
+[project.scripts]
+"xbt-artifacts" = "xbt_loom_plugin.artifacts_cli:main"
 
 [tool.uv.sources]
 xbt = { git = "https://github.com/seediang/xbt-core", rev = "develop" }

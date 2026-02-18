@@ -24,7 +24,9 @@ def format_status_message(prefix: str, message: str) -> str:
     return f"{timestamp}  {prefix}: {message}"
 
 
-def emit_status(logger: logging.Logger, message: str, level: int = logging.INFO) -> None:
+def emit_status(
+    logger: logging.Logger, message: str, level: int = logging.INFO
+) -> None:
     """Log and print a status message."""
     logger.log(level, message)
     print(message)
@@ -64,11 +66,15 @@ def find_workspace_root(
     markers: Optional[Iterable[str]] = None,
 ) -> Path:
     """Find workspace root by walking up for marker files or directories."""
-    marker_list = list(markers) if markers is not None else [
-        ".git",
-        "pyproject.toml",
-        DEFAULT_TEMPLATE_NAME,
-    ]
+    marker_list = (
+        list(markers)
+        if markers is not None
+        else [
+            ".git",
+            "pyproject.toml",
+            DEFAULT_TEMPLATE_NAME,
+        ]
+    )
 
     current = project_dir.resolve()
     for _ in range(max_depth):

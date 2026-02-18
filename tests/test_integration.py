@@ -1,7 +1,5 @@
 """Integration tests for the dbt-loom auto-configuration plugin."""
 
-from pathlib import Path
-
 import pytest
 import yaml
 
@@ -111,8 +109,14 @@ class TestPluginHookIntegration:
         setup = multi_project_setup
         projectB = setup["projectB"]
 
-        original_args = ["dbt", "run", "--select", "model1", "--project-dir", str(projectB)]
-        args_copy = original_args.copy()
+        original_args = [
+            "dbt",
+            "run",
+            "--select",
+            "model1",
+            "--project-dir",
+            str(projectB),
+        ]
 
         result = xbt_pre_invoke(original_args)
 
@@ -145,18 +149,14 @@ class TestConfigGeneration:
         for proj_name in ["projectA", "projectB", "projectC"]:
             project_dir = tmp_path / proj_name
             project_dir.mkdir()
-            (project_dir / "dbt_project.yml").write_text(
-                yaml.dump({"name": proj_name})
-            )
+            (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": proj_name}))
             (project_dir / "target").mkdir()
             (project_dir / "target" / "manifest.json").write_text("{}")
 
         # ProjectD depends on A, B, C
         projectD = tmp_path / "projectD"
         projectD.mkdir()
-        (projectD / "dbt_project.yml").write_text(
-            yaml.dump({"name": "projectD"})
-        )
+        (projectD / "dbt_project.yml").write_text(yaml.dump({"name": "projectD"}))
         (projectD / "dependencies.yml").write_text(
             yaml.dump(
                 {

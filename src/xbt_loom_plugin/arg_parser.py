@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 
 
 def parse_cli_args(args: list) -> Dict[str, Optional[str]]:

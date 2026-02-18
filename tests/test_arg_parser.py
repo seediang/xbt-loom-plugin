@@ -1,11 +1,5 @@
 """Tests for xbt_plugins.arg_parser module."""
 
-import os
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
 from xbt_loom_plugin.arg_parser import (
     find_profiles_dir,
     find_project_dir,
