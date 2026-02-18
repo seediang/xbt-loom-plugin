@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
 
 [project]
 name = "xbt-loom-plugin"
@@ -13,8 +13,6 @@ dependencies = [
     "xbt",
     "pyyaml",
     "jinja2",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -26,9 +24,6 @@ dev = [
 [project.entry-points.xbt]
 "xbt-loom-auto-configure" = "xbt_loom_plugin.auto_configuration"
 "xbt-loom-zip-artifacts" = "xbt_loom_plugin.artifact_zipper"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/xbt_loom_plugin"]
 
 [tool.uv.sources]
 xbt = { git = "https://github.com/seediang/xbt-core", rev = "develop" }
