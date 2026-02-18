@@ -1,11 +1,47 @@
 # dbt-loom configuration template
 # This file can be customized with Jinja2 variables and environment variables
 #
+# Artifact Storage Configuration (optional):
+#
+# The xbt-loom plugin can automatically upload and pull artifacts (manifest.json, run_results.json)
+# to cloud storage or local filesystem, keyed by dbt target (dev/prod/staging).
+# This is configured in pyproject.toml under [tool.xbt-loom.artifacts].
+#
+# Supported backends:
+#   - local: Local filesystem (great for testing and development)
+#   - s3: AWS S3 buckets
+#   - snowflake: Snowflake stages
+#
+# Example pyproject.toml configuration:
+#
+# [tool.xbt-loom.artifacts]
+# backend = "local"  # or "s3", "snowflake"
+# # Backend-specific settings:
+# local_path = "/tmp/xbt_artifacts"  # For local backend
+# bucket_name = "my-bucket"  # For S3 backend
+# aws_region = "us-east-1"  # For S3 backend
+# stage_path = "@my_stage"  # For Snowflake backend
+# # Optional: patterns for targets to skip on upload (dev, des, temp.*, etc)
+# upload_skip_patterns = ["dev", "des", "temp.*"]
+#
+# Environment variables can also be used:
+#   - XBT_ARTIFACT_BACKEND: Storage backend type
+#   - XBT_ARTIFACT_LOCAL_PATH: Local storage path
+#   - XBT_ARTIFACT_S3_BUCKET: S3 bucket name
+#   - XBT_ARTIFACT_AWS_REGION: AWS region
+#   - XBT_ARTIFACT_SNOWFLAKE_STAGE: Snowflake stage path
+#   - XBT_ARTIFACT_TARGET: Override dbt target for storage path (defaults to dbt target)
+#
+# CLI commands for artifact management:
+#   - xbt-artifacts push [--target <target>] [--force]: Upload current project artifacts
+#   - xbt-artifacts pull <project> [--target <target>] [--version <timestamp>]: Download upstream artifacts
+#   - xbt-artifacts list <project> [--target <target>]: List available versions
+#
 # Jinja2 variables available:
-#   - /home/simon/github/seediang/xbt-mesh/proj-mesh/projectB: Root directory of this dbt project
-#   - /home/simon/github/seediang/xbt-mesh/proj-mesh/projectB: Path to profiles directory (if resolved)
+#   - /workspaces/xbt-mesh/proj-mesh/projectB: Root directory of this dbt project
+#   - /workspaces/xbt-mesh/proj-mesh/projectB: Path to profiles directory (if resolved)
 #   - projectB: Name of this project from dbt_project.yml
-#   - [{'upstream_project': 'projectA', 'project_root': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectB', 'project_name': 'projectB', 'profiles_dir': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectB', 'manifest_path': '../projectA/target/manifest.json', 'manifest_path_abs': '/home/simon/github/seediang/xbt-mesh/proj-mesh/projectA/target/manifest.json', 'name': 'projectA', 'manifest_type': 'file', 'config': {}, 'excluded_packages': None}]: List of upstream project dicts with keys:
+#   - [{'upstream_project': 'projectA', 'project_root': '/workspaces/xbt-mesh/proj-mesh/projectB', 'project_name': 'projectB', 'profiles_dir': '/workspaces/xbt-mesh/proj-mesh/projectB', 'manifest_path': '../projectA/target/manifest.json', 'manifest_path_abs': '/workspaces/xbt-mesh/proj-mesh/projectA/target/manifest.json', 'name': 'projectA', 'manifest_type': 'file', 'config': {}, 'excluded_packages': None}]: List of upstream project dicts with keys:
 #       - name
 #       - upstream_project
 #       - manifest_path (relative)
@@ -48,6 +84,7 @@ manifests:
 #       project_id: ${GCP_PROJECT_ID}
 #       bucket_name: ${GCS_BUCKET}
 #       object_name: manifests/{{ project.name }}/manifest.json
+
 #       credentials: ${GOOGLE_APPLICATION_CREDENTIALS}
 #
 # Example for dbt Cloud:

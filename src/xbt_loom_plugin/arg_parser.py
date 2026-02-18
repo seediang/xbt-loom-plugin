@@ -2,10 +2,11 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Dict
+
+from .types import ParsedCliArgs
 
 
-def parse_cli_args(args: list) -> Dict[str, Optional[str]]:
+def parse_cli_args(args: list[str]) -> ParsedCliArgs:
     """
     Parse CLI arguments following dbt's conventions.
 
@@ -21,7 +22,7 @@ def parse_cli_args(args: list) -> Dict[str, Optional[str]]:
     Returns:
         Dictionary with keys 'project_dir' and 'profiles_dir' containing found values or None
     """
-    result = {"project_dir": None, "profiles_dir": None}
+    result: ParsedCliArgs = {"project_dir": None, "profiles_dir": None}
 
     i = 0
     while i < len(args):
@@ -57,7 +58,7 @@ def parse_cli_args(args: list) -> Dict[str, Optional[str]]:
     return result
 
 
-def find_profiles_dir() -> Optional[Path]:
+def find_profiles_dir() -> Path | None:
     """
     Find profiles directory following dbt's search order:
     1. Current working directory (profiles.yml exists)
@@ -83,7 +84,7 @@ def find_profiles_dir() -> Optional[Path]:
     return None
 
 
-def find_project_dir() -> Optional[Path]:
+def find_project_dir() -> Path | None:
     """
     Find project directory by looking for dbt_project.yml.
 
@@ -100,7 +101,7 @@ def find_project_dir() -> Optional[Path]:
     return None
 
 
-def resolve_profiles_dir(args: list) -> Optional[Path]:
+def resolve_profiles_dir(args: list[str]) -> Path | None:
     """
     Resolve profiles directory following dbt's search order:
     1. --profiles-dir CLI flag
@@ -131,7 +132,7 @@ def resolve_profiles_dir(args: list) -> Optional[Path]:
     return find_profiles_dir()
 
 
-def resolve_project_dir(args: list) -> Optional[Path]:
+def resolve_project_dir(args: list[str]) -> Path | None:
     """
     Resolve project directory following dbt's search order:
     1. --project-dir CLI flag

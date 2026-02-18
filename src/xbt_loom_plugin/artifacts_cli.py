@@ -5,33 +5,31 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-
-from .artifact_storage import get_artifact_storage, should_skip_upload
-from .artifact_zipper import (
-    _extract_dbt_target,
-    _get_project_name,
-    _load_artifact_config,
+from .arg_parser import resolve_project_dir
+from .artifact_helpers import (
+    extract_dbt_target,
+    get_project_name,
+    load_artifact_config,
+    resolve_profiles_path,
 )
+from .artifact_storage import get_artifact_storage, should_skip_upload
 
 logger = logging.getLogger(__name__)
 
 
 def _get_project_dir() -> Optional[Path]:
     """Get the current dbt project directory."""
+    project_dir = resolve_project_dir([])
+    if project_dir:
+        return project_dir
+
     cwd = Path.cwd()
-
-    # Check if dbt_project.yml exists in current directory
-    if (cwd / "dbt_project.yml").exists():
-        return cwd
-
-    # Check parent directory
     if (cwd.parent / "dbt_project.yml").exists():
         return cwd.parent
 
-    # Check for projectA or projectB style structure
-    for subdir in ["projectA", "projectB"]:
-        if (cwd / subdir / "dbt_project.yml").exists():
-            return cwd / subdir
+    for subdir in cwd.iterdir():
+        if subdir.is_dir() and (subdir / "dbt_project.yml").exists():
+            return subdir
 
     logger.error("Could not find dbt project directory")
     return None
@@ -51,7 +49,7 @@ def push_artifacts(args: argparse.Namespace) -> int:
         if not project_dir:
             return 1
 
-        project_name = _get_project_name(project_dir)
+        project_name = get_project_name(project_dir)
         if not project_name:
             logger.error("Could not determine project name")
             return 1
@@ -65,17 +63,15 @@ def push_artifacts(args: argparse.Namespace) -> int:
             return 1
 
         # Get target
-        profiles_path = project_dir / "profiles.yml"
-        if not profiles_path.exists():
-            profiles_path = project_dir.parent / "profiles.yml"
+        profiles_path = resolve_profiles_path(project_dir)
 
         # Allow CLI override
         if args.target:
             target_name = args.target
         else:
-            target_name = _extract_dbt_target([], profiles_path)
+            target_name = extract_dbt_target([], profiles_path)
 
-        config = _load_artifact_config(project_dir)
+        config = load_artifact_config(project_dir)
 
         # Check skip patterns unless --force is used
         if not args.force and should_skip_upload(
@@ -131,17 +127,15 @@ def pull_artifacts(args: argparse.Namespace) -> int:
         if not project_dir:
             project_dir = Path.cwd()
 
-        config = _load_artifact_config(project_dir)
+        config = load_artifact_config(project_dir)
 
         # Get target
-        profiles_path = project_dir / "profiles.yml"
-        if not profiles_path.exists():
-            profiles_path = project_dir.parent / "profiles.yml"
+        profiles_path = resolve_profiles_path(project_dir)
 
         if args.target:
             target_name = args.target
         else:
-            target_name = _extract_dbt_target([], profiles_path)
+            target_name = extract_dbt_target([], profiles_path)
 
         project_name = args.project
 
@@ -164,8 +158,7 @@ def pull_artifacts(args: argparse.Namespace) -> int:
 
         if result and "manifest_path" in result:
             print(
-                f"✓ Successfully downloaded artifacts for {project_name} "
-                f"(target: {target_name})"
+                f"✓ Successfully downloaded artifacts for {project_name} (target: {target_name})"
             )
             print(f"  Manifest: {result['manifest_path']}")
             print(f"  Run results: {result['run_results_path']}")
@@ -193,17 +186,15 @@ def list_artifacts(args: argparse.Namespace) -> int:
         if not project_dir:
             project_dir = Path.cwd()
 
-        config = _load_artifact_config(project_dir)
+        config = load_artifact_config(project_dir)
 
         # Get target
-        profiles_path = project_dir / "profiles.yml"
-        if not profiles_path.exists():
-            profiles_path = project_dir.parent / "profiles.yml"
+        profiles_path = resolve_profiles_path(project_dir)
 
         if args.target:
             target_name = args.target
         else:
-            target_name = _extract_dbt_target([], profiles_path)
+            target_name = extract_dbt_target([], profiles_path)
 
         project_name = args.project
 

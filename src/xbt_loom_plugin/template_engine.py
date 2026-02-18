@@ -36,6 +36,23 @@ def render_value(value: Any, context: Optional[Dict[str, Any]] = None) -> str:
     return text
 
 
+def render_nested(value: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+    """Render strings in nested values while preserving non-string types."""
+    if context is None:
+        context = {}
+
+    if isinstance(value, str):
+        return render_value(value, context)
+
+    if isinstance(value, list):
+        return [render_nested(item, context) for item in value]
+
+    if isinstance(value, dict):
+        return {key: render_nested(item, context) for key, item in value.items()}
+
+    return value
+
+
 def render_jinja2(template_text: str, context: Dict[str, Any]) -> str:
     """
     Render Jinja2 template using provided context.

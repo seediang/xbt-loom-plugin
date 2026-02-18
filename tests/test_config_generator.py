@@ -87,11 +87,22 @@ class TestExtractDependencies:
         assert entries == []
 
     def test_extract_dependencies_invalid_project_format(self):
-        """Test handling invalid project entry."""
+        """Test invalid project entries fail fast."""
         deps = {"projects": [{"name": "projectA"}, "invalid_entry"]}
-        entries = extract_dependencies(deps)
-        # Should skip invalid entry
-        assert [entry["name"] for entry in entries] == ["projectA"]
+        with pytest.raises(ValueError, match="Invalid project entry"):
+            extract_dependencies(deps)
+
+    def test_extract_dependencies_invalid_projects_shape(self):
+        """Test invalid projects field shape fails."""
+        deps = {"projects": {"name": "projectA"}}
+        with pytest.raises(ValueError, match="must be a list"):
+            extract_dependencies(deps)
+
+    def test_extract_dependencies_invalid_config_type(self):
+        """Test invalid config type fails."""
+        deps = {"projects": [{"name": "projectA", "config": "bad"}]}
+        with pytest.raises(ValueError, match="'config' must be a mapping"):
+            extract_dependencies(deps)
 
 
 class TestGenerateConfigForProject:
@@ -164,6 +175,88 @@ class TestGenerateConfigForProject:
         names = [m["name"] for m in config["manifests"]]
         assert "projectA" in names
         assert "projectB" in names
+
+    def test_generate_config_non_file_without_config_fails(self, tmp_path):
+        """Test non-file manifest type requires config."""
+        project_dir = tmp_path / "projectB"
+        project_dir.mkdir()
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectB"}))
+        (project_dir / "dependencies.yml").write_text(
+            yaml.dump({"projects": [{"name": "projectA", "type": "s3"}]})
+        )
+
+        with pytest.raises(ValueError, match="Missing 'config'"):
+            generate_config_for_project(project_dir, workspace_root=tmp_path)
+
+    def test_generate_config_preserves_non_string_config_types(self, tmp_path):
+        """Test nested non-string values remain native types in manifest config."""
+        project_dir = tmp_path / "projectB"
+        project_dir.mkdir()
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectB"}))
+        (project_dir / "dependencies.yml").write_text(
+            yaml.dump(
+                {
+                    "projects": [
+                        {
+                            "name": "projectA",
+                            "type": "s3",
+                            "config": {
+                                "bucket_name": "bucket",
+                                "object_name": "prefix/{{ upstream_project }}/manifest.json",
+                                "use_accelerate": True,
+                                "retry_count": 3,
+                                "regions": ["us-east-1", "${REGION_FALLBACK}"],
+                                "metadata": {"owner": "{{ project_name }}"},
+                            },
+                        }
+                    ]
+                }
+            )
+        )
+
+        config_yaml = generate_config_for_project(project_dir, workspace_root=tmp_path)
+        assert config_yaml is not None
+        config = yaml.safe_load(config_yaml)
+
+        rendered = config["manifests"][0]["config"]
+        assert rendered["use_accelerate"] is True
+        assert rendered["retry_count"] == 3
+        assert rendered["regions"][0] == "us-east-1"
+        assert rendered["metadata"]["owner"] == "projectB"
+
+    def test_generate_config_template_output_requires_manifests(self, tmp_path):
+        """Test template output must include manifests."""
+        project_dir = tmp_path / "projectB"
+        project_dir.mkdir()
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectB"}))
+        (project_dir / "dependencies.yml").write_text(
+            yaml.dump({"projects": [{"name": "projectA"}]})
+        )
+        (project_dir / "dbt_loom.config.template.yml").write_text("foo: bar\n")
+
+        with pytest.raises(ValueError, match="must include top-level 'manifests'"):
+            generate_config_for_project(project_dir, workspace_root=tmp_path)
+
+    def test_generate_config_template_output_validates_manifest_config(self, tmp_path):
+        """Test template-generated manifests are validated."""
+        project_dir = tmp_path / "projectB"
+        project_dir.mkdir()
+        (project_dir / "dbt_project.yml").write_text(yaml.dump({"name": "projectB"}))
+        (project_dir / "dependencies.yml").write_text(
+            yaml.dump({"projects": [{"name": "projectA"}]})
+        )
+        (project_dir / "dbt_loom.config.template.yml").write_text(
+            """
+manifests:
+  - name: projectA
+    type: file
+    config: {}
+""".strip()
+            + "\n"
+        )
+
+        with pytest.raises(ValueError, match="requires 'path'"):
+            generate_config_for_project(project_dir, workspace_root=tmp_path)
 
 
 class TestWriteConfigFile:

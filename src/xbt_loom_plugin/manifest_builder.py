@@ -1,6 +1,8 @@
 """Build dbt-loom manifest entries from templates and configuration."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Mapping
+
+from .types import ManifestConfig, ManifestEntry
 
 
 class ManifestBuilder:
@@ -21,9 +23,9 @@ class ManifestBuilder:
     def build_manifest_entry(
         name: str,
         manifest_type: str,
-        config: Dict[str, Any],
-        excluded_packages: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        config: ManifestConfig,
+        excluded_packages: list[str] | None = None,
+    ) -> ManifestEntry:
         """
         Build a manifest entry following dbt-loom structure.
 
@@ -45,7 +47,7 @@ class ManifestBuilder:
                 f"Supported types: {', '.join(ManifestBuilder.SUPPORTED_TYPES)}"
             )
 
-        entry = {
+        entry: ManifestEntry = {
             "name": name,
             "type": manifest_type,
             "config": config,
@@ -57,13 +59,13 @@ class ManifestBuilder:
         return entry
 
     @staticmethod
-    def validate_file_config(config: Dict[str, Any]) -> None:
+    def validate_file_config(config: Mapping[str, Any]) -> None:
         """Validate file manifest type config."""
         if "path" not in config:
             raise ValueError("File manifest requires 'path' in config")
 
     @staticmethod
-    def validate_s3_config(config: Dict[str, Any]) -> None:
+    def validate_s3_config(config: Mapping[str, Any]) -> None:
         """Validate S3 manifest type config."""
         required = ["bucket_name", "object_name"]
         for key in required:
@@ -71,7 +73,7 @@ class ManifestBuilder:
                 raise ValueError(f"S3 manifest requires '{key}' in config")
 
     @staticmethod
-    def validate_gcs_config(config: Dict[str, Any]) -> None:
+    def validate_gcs_config(config: Mapping[str, Any]) -> None:
         """Validate GCS manifest type config."""
         required = ["project_id", "bucket_name", "object_name"]
         for key in required:
@@ -79,7 +81,7 @@ class ManifestBuilder:
                 raise ValueError(f"GCS manifest requires '{key}' in config")
 
     @staticmethod
-    def validate_azure_config(config: Dict[str, Any]) -> None:
+    def validate_azure_config(config: Mapping[str, Any]) -> None:
         """Validate Azure manifest type config."""
         required = ["account_name", "container_name", "object_name"]
         for key in required:
@@ -87,7 +89,7 @@ class ManifestBuilder:
                 raise ValueError(f"Azure manifest requires '{key}' in config")
 
     @staticmethod
-    def validate_dbt_cloud_config(config: Dict[str, Any]) -> None:
+    def validate_dbt_cloud_config(config: Mapping[str, Any]) -> None:
         """Validate dbt Cloud manifest type config."""
         required = ["account_id", "job_id"]
         for key in required:
@@ -95,7 +97,7 @@ class ManifestBuilder:
                 raise ValueError(f"dbt Cloud manifest requires '{key}' in config")
 
     @staticmethod
-    def validate_config(manifest_type: str, config: Dict[str, Any]) -> None:
+    def validate_config(manifest_type: str, config: Mapping[str, Any]) -> None:
         """
         Validate configuration for a manifest type.
 
